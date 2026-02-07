@@ -21,3 +21,7 @@
 	#url = https://git.savannah.gnu.org/git/lwip.git
 	url =  https://github.com/lwip-tcpip/lwip.git
 	shallow = true
+[submodule "libcoap/libcoap"]
+	path = libcoap/libcoap
+	url = https://github.com/obgm/libcoap.git
+	branch = develop
