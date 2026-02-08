@@ -18,9 +18,12 @@ typedef enum {
 // MAC address
 typedef uint8_t mac_addr_t[6];
 
+// SSID
+typedef char ssid_t[33];
+
 // Passphrase and security method
 typedef struct passphrase {
-  char pass[64];
+  char pass[65];
   security_e security;
 } passphrase_t;
 
@@ -37,9 +40,6 @@ returncode_t libtock_wifi_on(libtock_wifi_callback_command_done callback);
 
 // Get MAC address
 returncode_t libtock_wifi_mac(mac_addr_t* mac_addr);
-
-// SSID
-typedef char ssid_t[32];
 
 // Configure the Wi-Fi as an open AP (access point).
 returncode_t libtock_wifi_ap_open(uint8_t channel, ssid_t* ssid, libtock_wifi_callback_command_done callback);
