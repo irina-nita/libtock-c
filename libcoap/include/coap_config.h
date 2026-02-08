@@ -103,7 +103,7 @@ typedef int dtls_mutex_t;
 /* Enable TinyDTLS as the DTLS backend */
 #define COAP_WITH_LIBTINYDTLS 1
 #define DTLS_PSK
-#define DTLS_ECC
+#define WITH_SHA256 1
 
 /* Disable other DTLS backends */
 #define COAP_WITH_LIBOPENSSL 0

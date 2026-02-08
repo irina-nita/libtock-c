@@ -60,7 +60,8 @@ $(LIBNAME)_TDTLS_SRCS := \
 	$($(LIBNAME)_TDTLS_SRC_DIR)/session.c \
 	$($(LIBNAME)_TDTLS_SRC_DIR)/sha2/sha2.c \
 	$($(LIBNAME)_TDTLS_SRC_DIR)/ecc/ecc.c \
-	$($(LIBNAME)_TDTLS_SRC_DIR)/aes/rijndael.c
+	$($(LIBNAME)_TDTLS_SRC_DIR)/aes/rijndael.c \
+	$($(LIBNAME)_TDTLS_SRC_DIR)/aes/rijndael_wrap.c
 
 $(LIBNAME)_SRCS := $($(LIBNAME)_COAP_SRCS) $($(LIBNAME)_TDTLS_SRCS)
 
