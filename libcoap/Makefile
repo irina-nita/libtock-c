@@ -8,9 +8,6 @@ $(LIBNAME)_DIR := $(TOCK_USERLAND_BASE_DIR)/$(LIBNAME)
 
 $(LIBNAME)_COAP_SRC_DIR := $($(LIBNAME)_DIR)/$(LIBNAME)/src
 
-# $($(LIBNAME)_COAP_SRC_DIR)/coap_proxy.c \
-# $($(LIBNAME)_COAP_SRC_DIR)/coap_sha1.c \
-
 $(LIBNAME)_COAP_SRCS := \
 	$($(LIBNAME)_COAP_SRC_DIR)/coap_address.c \
 	$($(LIBNAME)_COAP_SRC_DIR)/coap_asn1.c \
@@ -27,6 +24,7 @@ $(LIBNAME)_COAP_SRCS := \
 	$($(LIBNAME)_COAP_SRC_DIR)/coap_io_lwip.c \
 	$($(LIBNAME)_COAP_SRC_DIR)/coap_layers.c \
 	$($(LIBNAME)_COAP_SRC_DIR)/coap_mem.c \
+	$($(LIBNAME)_COAP_SRC_DIR)/coap_mbedtls.c \
 	$($(LIBNAME)_COAP_SRC_DIR)/coap_net.c \
 	$($(LIBNAME)_COAP_SRC_DIR)/coap_netif.c \
 	$($(LIBNAME)_COAP_SRC_DIR)/coap_option.c \
@@ -39,31 +37,16 @@ $(LIBNAME)_COAP_SRCS := \
 	$($(LIBNAME)_COAP_SRC_DIR)/coap_subscribe.c \
 	$($(LIBNAME)_COAP_SRC_DIR)/coap_threadsafe.c \
 	$($(LIBNAME)_COAP_SRC_DIR)/coap_time.c \
-	$($(LIBNAME)_COAP_SRC_DIR)/coap_tinydtls.c \
-	$($(LIBNAME)_COAP_SRC_DIR)/coap_uri.c
+	$($(LIBNAME)_COAP_SRC_DIR)/coap_uri.c \
+	$($(LIBNAME)_COAP_SRC_DIR)/coap_ws.c
 
-# Build tinyDTLS for DTLS support
-# NOTE: This could be done in a separate Makefile (I guess) but tinyDTLS is already a submodule
-# of the `libcoap` repository...
-$(LIBNAME)_TDTLS_SRC_DIR := $($(LIBNAME)_DIR)/$(LIBNAME)/ext/tinydtls
+$(LIBNAME)_MBEDTLS_DIR := $(TOCK_USERLAND_BASE_DIR)/libopenthread/libmbedtls
+$(LIBNAME)_MBEDTLS_SRC_ROOT := $(TOCK_USERLAND_BASE_DIR)/libopenthread/openthread/third_party/mbedtls
 
-$(LIBNAME)_TDTLS_SRCS := \
-	$($(LIBNAME)_TDTLS_SRC_DIR)/ccm.c \
-	$($(LIBNAME)_TDTLS_SRC_DIR)/crypto.c \
-	$($(LIBNAME)_TDTLS_SRC_DIR)/dtls.c \
-	$($(LIBNAME)_TDTLS_SRC_DIR)/dtls_debug.c \
-	$($(LIBNAME)_TDTLS_SRC_DIR)/dtls_prng.c \
-	$($(LIBNAME)_TDTLS_SRC_DIR)/dtls_time.c \
-	$($(LIBNAME)_TDTLS_SRC_DIR)/hmac.c \
-	$($(LIBNAME)_TDTLS_SRC_DIR)/netq.c \
-	$($(LIBNAME)_TDTLS_SRC_DIR)/peer.c \
-	$($(LIBNAME)_TDTLS_SRC_DIR)/session.c \
-	$($(LIBNAME)_TDTLS_SRC_DIR)/sha2/sha2.c \
-	$($(LIBNAME)_TDTLS_SRC_DIR)/ecc/ecc.c \
-	$($(LIBNAME)_TDTLS_SRC_DIR)/aes/rijndael.c \
-	$($(LIBNAME)_TDTLS_SRC_DIR)/aes/rijndael_wrap.c
+# List all C and Assembly files
+$(LIBNAME)_MBEDTLS_SRCS  += $(wildcard $($(LIBNAME)_MBEDTLS_SRC_ROOT)/repo/library/*.c)
 
-$(LIBNAME)_SRCS := $($(LIBNAME)_COAP_SRCS) $($(LIBNAME)_TDTLS_SRCS)
+$(LIBNAME)_SRCS := $($(LIBNAME)_COAP_SRCS) $($(LIBNAME)_MBEDTLS_SRCS)
 
 # Add include paths for libcoap
 
@@ -74,18 +57,42 @@ override CPPFLAGS += -I$(TOCK_USERLAND_BASE_DIR)/lwip/include
 override CPPFLAGS += -I$($(LIBNAME)_DIR)/include
 # Public headers from the libcoap submodule
 override CPPFLAGS += -I$($(LIBNAME)_DIR)/$(LIBNAME)/include
-# Tiny DTLS headers
-override CPPFLAGS += -I$($(LIBNAME)_DIR)/$(LIBNAME)/ext
-override CPPFLAGS += -I$($(LIBNAME)_TDTLS_SRC_DIR)
-override CPPFLAGS += -I$($(LIBNAME)_TDTLS_SRC_DIR)/sha2
-override CPPFLAGS += -I$($(LIBNAME)_TDTLS_SRC_DIR)/ecc
-override CPPFLAGS += -I$($(LIBNAME)_TDTLS_SRC_DIR)/aes
+
+# MbedTLS headers
+override CPPFLAGS += -I$($(LIBNAME)_MBEDTLS_SRC_ROOT)/../../src/core
+override CPPFLAGS += -I$($(LIBNAME)_MBEDTLS_SRC_ROOT)/../../include
+override CPPFLAGS += -I$($(LIBNAME)_MBEDTLS_SRC_ROOT)/repo/include
+override CPPFLAGS += -I$($(LIBNAME)_MBEDTLS_SRC_ROOT)
+override CPPFLAGS += -I$($(LIBNAME)_MBEDTLS_DIR)
+
+# Include the config file already existing in libtock-c
+override CPPFLAGS += -DMBEDTLS_CONFIG_FILE=\"libtock-mbedtls-config.h\"
+
+# Enable mbedtls modules required by libcoap's DTLS backend (coap_mbedtls.c)
+# that are not enabled by the OpenThread mbedtls-config.h.
+override CPPFLAGS += -DMBEDTLS_ERROR_C
+override CPPFLAGS += -DMBEDTLS_SSL_COOKIE_C
+override CPPFLAGS += -DMBEDTLS_DEBUG_C
+override CPPFLAGS += -DMBEDTLS_SSL_SRV_C
+override CPPFLAGS += -DMBEDTLS_VERSION_C
+
+# Tock stub for the timing.h functions
+$(LIBNAME)_SRCS += $($(LIBNAME)_DIR)/mbedtls_timing.c
+
+# Avoid failing in CI due to warnings in the library.
+override CPPFLAGS_$(LIBNAME) += -Wno-error
+override CPPFLAGS_$(LIBNAME) += -Wno-unused-macros -Wno-redundant-decls
+
+# Avoid failing in CI due to warnings in the library.
+override CPPFLAGS_$(LIBNAME) += -Wno-error
+override CPPFLAGS_$(LIBNAME) += -Wno-unused-macros -Wno-redundant-decls
 
 # Avoid failing in CI due to warnings in the library.
 override CPPFLAGS_$(LIBNAME) += -Wno-error
 
-# Include config for Tiny DTLS
+# Include config
 override CFLAGS += -include $($(LIBNAME)_DIR)/include/coap_config.h
 
 # Include the rules to build the library
 include $(TOCK_USERLAND_BASE_DIR)/TockLibrary.mk
+

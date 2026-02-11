@@ -1,5 +1,7 @@
 TOCK_USERLAND_BASE_DIR ?= ..
 
+# FIXME: Switched the backend for DTLS now to MbedTLS, so the tinydtls submodule isn't
+# required to be checked out also
 $(TOCK_USERLAND_BASE_DIR)/libcoap/ext/tinydtls/README: $(TOCK_USERLAND_BASE_DIR)/lwip/lwip/README
 	git submodule init $(TOCK_USERLAND_BASE_DIR)/libcoap/libcoap
 	git submodule update --init --recursive $(TOCK_USERLAND_BASE_DIR)/libcoap/libcoap
